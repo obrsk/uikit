@@ -1,33 +1,37 @@
-const fs = require('fs-extra');
-const path = require('path');
-const glob = require('glob');
+const fs = require('fs');
 const less = require('less');
 const SVGO = require('svgo');
 const rollup = require('rollup');
+const postcss = require('postcss');
 const uglify = require('uglify-js');
+const {promisify} = require('util');
 const CleanCSS = require('clean-css');
 const html = require('rollup-plugin-html');
-const json = require('rollup-plugin-json');
-const buble = require('rollup-plugin-buble');
-const replace = require('rollup-plugin-replace');
-const alias = require('rollup-plugin-import-alias');
+const buble = require('@rollup/plugin-buble');
+const replace = require('@rollup/plugin-replace');
+const alias = require('@rollup/plugin-alias');
+const {basename, dirname, join, resolve} = require('path');
 const {version} = require('../package.json');
-const banner = `/*! UIkit ${version} | http://www.getuikit.com | (c) 2014 - 2018 YOOtheme | MIT License */\n`;
+const banner = `/*! UIkit ${version} | https://www.getuikit.com | (c) 2014 - ${new Date().getFullYear()} YOOtheme | MIT License */\n`;
 
 exports.banner = banner;
 exports.validClassName = /[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*/;
 
+exports.glob = promisify(require('glob'));
+
+const readFile = promisify(fs.readFile);
 exports.read = async function (file, cb) {
 
-    const data = await fs.readFile(file, 'utf8');
+    const data = await readFile(file, 'utf8');
     cb && cb(data);
     return data;
 
 };
 
+const writeFile = promisify(fs.writeFile);
 exports.write = async function (dest, data) {
 
-    const err = await fs.outputFile(dest, data);
+    const err = await writeFile(dest, data);
 
     if (err) {
         console.log(err);
@@ -42,15 +46,7 @@ exports.write = async function (dest, data) {
 
 exports.logFile = async function (file) {
     const data = await exports.read(file);
-    console.log(`${exports.cyan(file)} ${exports.getSize(data)}`);
-};
-
-exports.getSize = function (data) {
-    return `${(data.length / 1024).toFixed(2)}kb`;
-};
-
-exports.cyan = function (str) {
-    return `\x1b[1m\x1b[36m${str}\x1b[39m\x1b[22m`;
+    console.log(`${cyan(file)} ${getSize(data)}`);
 };
 
 exports.minify = async function (file) {
@@ -62,14 +58,14 @@ exports.minify = async function (file) {
         returnPromise: true
     }).minify([file]);
 
-    await exports.write(`${path.join(path.dirname(file), path.basename(file, '.css'))}.min.css`, styles);
+    await exports.write(`${join(dirname(file), basename(file, '.css'))}.min.css`, styles);
 
     return styles;
 
 };
 
 exports.uglify = async function (file) {
-    file = path.join(path.dirname(file), path.basename(file, '.js'));
+    file = join(dirname(file), basename(file, '.js'));
     return exports.write(
         `${file}.min.js`,
         uglify.minify(
@@ -80,26 +76,41 @@ exports.uglify = async function (file) {
 };
 
 exports.renderLess = async function (data, options) {
-    return (await less.render(data, options)).css;
+    return postcss()
+        .use(postcss.plugin('calc', () =>
+            css => {
+                css.walk(node => {
+                    const {type} = node;
+
+                    if (type === 'decl') {
+                        node.value = postcss.list.space(node.value).map(value =>
+                            value.startsWith('calc(')
+                                ? value.replace(/(.)calc/g, '$1')
+                                : value
+                        ).join(' ');
+                    }
+                });
+            }
+        ))
+        .process((await less.render(data, options)).css)
+        .css;
 };
 
-exports.compile = async function (file, dest, {external, globals, name, aliases, bundled, replaces, minify = true}) {
+exports.compile = async function (file, dest, {external, globals, name, aliases, replaces, minify = true}) {
 
     name = (name || '').replace(/[^\w]/g, '_');
 
     const bundle = await rollup.rollup({
         external,
-        input: `${path.resolve(path.dirname(file), path.basename(file, '.js'))}.js`,
+        input: `${resolve(dirname(file), basename(file, '.js'))}.js`,
         plugins: [
             replace(Object.assign({
-                BUNDLED: bundled || false,
                 VERSION: `'${version}'`
             }, replaces)),
             alias({
-                Paths: Object.assign({
-                    'uikit-util': './src/js/util/index',
-                }, aliases),
-                Extensions: ['js', 'json']
+                entries: Object.assign({
+                    'uikit-util': './src/js/util/index.js'
+                }, aliases)
             }),
             html({
                 include: '**/*.svg',
@@ -107,8 +118,7 @@ exports.compile = async function (file, dest, {external, globals, name, aliases,
                     collapseWhitespace: true
                 }
             }),
-            json(),
-            buble({namedFunctionExpressions: false}),
+            buble({namedFunctionExpressions: false})
         ]
     });
 
@@ -123,7 +133,7 @@ exports.compile = async function (file, dest, {external, globals, name, aliases,
 
     code = code.replace(/(>)\\n\s+|\\n\s+(<)/g, '$1 $2');
 
-    return await Promise.all([
+    return Promise.all([
         exports.write(`${dest}.js`, code + (!minify ? '\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,' + Buffer.from(map.toString()).toString('base64') : '')),
         minify ? exports.write(`${dest}.min.js`, uglify.minify(code, {output: {preamble: exports.banner}}).code) : null
     ])[0];
@@ -152,7 +162,7 @@ exports.icons = async function (src) {
         ]
 
     });
-    const files = glob.sync(src, {nosort: true});
+    const files = await exports.glob(src, {nosort: true});
     const icons = await Promise.all(files.map(async file => {
         const data = await exports.read(file);
         const {data: svg} = await svgo.optimize(data);
@@ -160,7 +170,7 @@ exports.icons = async function (src) {
     }));
 
     return JSON.stringify(files.reduce((result, file, i) => {
-        result[path.basename(file, '.svg')] = icons[i];
+        result[basename(file, '.svg')] = icons[i];
         return result;
     }, {}), null, '    ');
 
@@ -169,3 +179,11 @@ exports.icons = async function (src) {
 exports.ucfirst = function (str) {
     return str.length ? str.charAt(0).toUpperCase() + str.slice(1) : '';
 };
+
+function cyan(str) {
+    return `\x1b[1m\x1b[36m${str}\x1b[39m\x1b[22m`;
+}
+
+function getSize(data) {
+    return `${(data.length / 1024).toFixed(2)}kb`;
+}

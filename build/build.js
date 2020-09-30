@@ -1,7 +1,7 @@
-/* eslint-env node */
 const path = require('path');
 const glob = require('glob');
 const util = require('./util');
+const camelize = require('camelcase');
 const argv = require('minimist')(process.argv.slice(2));
 
 argv._.forEach(arg => {
@@ -14,48 +14,41 @@ argv.all = argv.all || numArgs <= 1; // no arguments passed, so compile all
 
 const minify = !(argv.debug || argv.nominify || argv.d);
 
-// TODO, reference camelize function from utils when separated
-const camelizeRe = /-(\w)/g;
-
-function camelize(str) {
-    return str.replace(camelizeRe, toUpper);
-}
-
-function toUpper(_, c) {
-    return c ? c.toUpperCase() : '';
-}
-
 // -----
 
 // map component build jobs
-const components = glob.sync('src/js/components/*.js').reduce((components, file) => {
+const components = glob.sync('src/js/components/!(index).js').reduce((components, file) => {
 
     const name = path.basename(file, '.js');
 
-    components[name] = () => {
-        return util.compile(`${__dirname}/componentWrapper.js`, `dist/${file.substring(4, file.length - 3)}`, {
+    components[name] = () =>
+        util.compile(`${__dirname}/wrapper/component.js`, `dist/js/components/${name}`, {
             name,
             minify,
             external: ['uikit', 'uikit-util'],
             globals: {uikit: 'UIkit', 'uikit-util': 'UIkit.util'},
-            aliases: {component: path.join(__dirname, '..', file.substr(0, file.length - 3))},
+            aliases: {component: path.resolve(__dirname, '../src/js/components', name)},
             replaces: {NAME: `'${camelize(name)}'`}
         });
-    };
 
     return components;
+
 }, {});
 
 const steps = {
 
     core: () => util.compile('src/js/uikit-core.js', 'dist/js/uikit-core', {minify}),
-    uikit: () => util.compile('src/js/uikit.js', 'dist/js/uikit', {minify, bundled: true}),
-    icons: () => util.icons('{src/images,custom}/icons/*.svg').then(ICONS => util.compile('src/js/icons.js', 'dist/js/uikit-icons', {
+    uikit: () => util.compile('src/js/uikit.js', 'dist/js/uikit', {minify}),
+    icons: async () => util.compile('build/wrapper/icons.js', 'dist/js/uikit-icons', {
         minify,
         name: 'icons',
-        replaces: {ICONS}
-    })),
-    tests: () => util.compile('tests/js/index.js', 'tests/js/test', {minify, name: 'test'})
+        replaces: {ICONS: await util.icons('{src/images,custom}/icons/*.svg')}}
+    ),
+    tests: async () => util.compile('tests/js/index.js', 'tests/js/test', {
+        minify,
+        name: 'test',
+        replaces: {TESTS: await getTestFiles()}}
+    )
 
 };
 
@@ -105,6 +98,19 @@ function collectJobs() {
     Object.assign(steps, components);
 
     // Object.keys(argv).forEach(step => components[step] && componentJobs.push(components[step]()));
-    return Object.keys(argv).filter(step => steps[step]).map(step => steps[step]());
+    return Object.keys(argv)
+        .filter(step => steps[step])
+        .map(step =>
+            steps[step]()
+                .catch(({message}) => {
+                    console.error(message);
+                    process.exitCode = 1;
+                })
+    );
 
+}
+
+async function getTestFiles() {
+    const files = await util.glob('tests/!(index).html', {nosort: true});
+    return JSON.stringify(files.map(file => path.basename(file, '.html')));
 }

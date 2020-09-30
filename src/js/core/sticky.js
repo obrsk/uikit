@@ -1,6 +1,6 @@
 import Class from '../mixin/class';
 import Media from '../mixin/media';
-import {$, addClass, after, Animation, assign, attr, css, fastdom, hasClass, height, isNumeric, isString, isVisible, noop, offset, offsetPosition, query, remove, removeClass, replaceClass, scrollTop, toFloat, toggleClass, trigger, within} from 'uikit-util';
+import {$, addClass, after, Animation, assign, css, fastdom, hasClass, inBrowser, isNumeric, isString, isVisible, noop, offset, offsetPosition, query, remove, removeClass, replaceClass, scrollTop, toFloat, toggleClass, toPx, trigger, within} from 'uikit-util';
 
 export default {
 
@@ -9,7 +9,7 @@ export default {
     props: {
         top: null,
         bottom: Boolean,
-        offset: Number,
+        offset: String,
         animation: String,
         clsActive: String,
         clsInactive: String,
@@ -38,6 +38,10 @@ export default {
 
     computed: {
 
+        offset({offset}) {
+            return toPx(offset);
+        },
+
         selTarget({selTarget}, $el) {
             return selTarget && $(selTarget, $el) || $el;
         },
@@ -62,7 +66,7 @@ export default {
                 }
             }
 
-        },
+        }
 
     },
 
@@ -90,7 +94,7 @@ export default {
 
             name: 'load hashchange popstate',
 
-            el: window,
+            el: inBrowser && window,
 
             handler() {
 
@@ -126,12 +130,16 @@ export default {
 
             read({height}, type) {
 
-                if (this.isActive && type !== 'update') {
+                this.inactive = !this.matchMedia || !isVisible(this.$el);
 
+                if (this.inactive) {
+                    return false;
+                }
+
+                if (this.isActive && type !== 'update') {
                     this.hide();
                     height = this.$el.offsetHeight;
                     this.show();
-
                 }
 
                 height = !this.isActive ? this.$el.offsetHeight : height;
@@ -142,12 +150,12 @@ export default {
                 const bottom = parseProp('bottom', this);
 
                 this.top = Math.max(toFloat(parseProp('top', this)), this.topOffset) - this.offset;
-                this.bottom = bottom && bottom - height;
-                this.inactive = !this.matchMedia;
+                this.bottom = bottom && bottom - this.$el.offsetHeight;
+                this.width = offset(isVisible(this.widthElement) ? this.widthElement : this.$el).width;
 
                 return {
-                    lastScroll: false,
                     height,
+                    top: offsetPosition(this.placeholder)[0],
                     margins: css(this.$el, ['marginTop', 'marginBottom', 'marginLeft', 'marginRight'])
                 };
             },
@@ -160,11 +168,10 @@ export default {
 
                 if (!within(placeholder, document)) {
                     after(this.$el, placeholder);
-                    attr(placeholder, 'hidden', '');
+                    placeholder.hidden = true;
                 }
 
-                // ensure active/inactive classes are applied
-                this.isActive = this.isActive;
+                this.isActive = !!this.isActive; // force self-assign
 
             },
 
@@ -176,26 +183,22 @@ export default {
 
             read({scroll = 0}) {
 
-                this.width = (isVisible(this.widthElement) ? this.widthElement : this.$el).offsetWidth;
-
                 this.scroll = window.pageYOffset;
 
                 return {
                     dir: scroll <= this.scroll ? 'down' : 'up',
-                    scroll: this.scroll,
-                    visible: isVisible(this.$el),
-                    top: offsetPosition(this.placeholder)[0]
+                    scroll: this.scroll
                 };
             },
 
             write(data, type) {
 
-                const {initTimestamp = 0, dir, lastDir, lastScroll, scroll, top, visible} = data;
-                const now = performance.now();
+                const now = Date.now();
+                const {initTimestamp = 0, dir, lastDir, lastScroll, scroll, top} = data;
 
                 data.lastScroll = scroll;
 
-                if (scroll < 0 || scroll === lastScroll || !visible || this.disabled || this.showOnUp && type !== 'scroll') {
+                if (scroll < 0 || scroll === lastScroll && type === 'scroll' || this.showOnUp && type !== 'scroll' && !this.isFixed) {
                     return;
                 }
 
@@ -206,13 +209,13 @@ export default {
 
                 data.lastDir = dir;
 
-                if (this.showOnUp && Math.abs(data.initScroll - scroll) <= 30 && Math.abs(lastScroll - scroll) <= 10) {
+                if (this.showOnUp && !this.isFixed && Math.abs(data.initScroll - scroll) <= 30 && Math.abs(lastScroll - scroll) <= 10) {
                     return;
                 }
 
                 if (this.inactive
                     || scroll < this.top
-                    || this.showOnUp && (scroll <= this.top || dir === 'down' || dir === 'up' && !this.isFixed && scroll <= this.bottomOffset)
+                    || this.showOnUp && (scroll <= this.top || dir === 'down' && type === 'scroll' || dir === 'up' && !this.isFixed && scroll <= this.bottomOffset)
                 ) {
 
                     if (!this.isFixed) {
@@ -252,7 +255,7 @@ export default {
 
             events: ['resize', 'scroll']
 
-        },
+        }
 
     ],
 
@@ -262,7 +265,7 @@ export default {
 
             this.isFixed = true;
             this.update();
-            attr(this.placeholder, 'hidden', null);
+            this.placeholder.hidden = false;
 
         },
 
@@ -271,7 +274,7 @@ export default {
             this.isActive = false;
             removeClass(this.$el, this.clsFixed, this.clsBelow);
             css(this.$el, {position: '', top: '', width: ''});
-            attr(this.placeholder, 'hidden', '');
+            this.placeholder.hidden = true;
 
         },
 
@@ -280,7 +283,7 @@ export default {
             const active = this.top !== 0 || this.scroll > this.top;
             let top = Math.max(0, this.offset);
 
-            if (this.bottom && this.scroll > this.bottom - this.offset) {
+            if (isNumeric(this.bottom) && this.scroll > this.bottom - this.offset) {
                 top = this.bottom - this.scroll;
             }
 
@@ -308,21 +311,13 @@ function parseProp(prop, {$props, $el, [`${prop}Offset`]: propOffset}) {
         return;
     }
 
-    if (isNumeric(value)) {
+    if (isString(value) && value.match(/^-?\d/)) {
 
-        return propOffset + toFloat(value);
-
-    } else if (isString(value) && value.match(/^-?\d+vh$/)) {
-
-        return height(window) * toFloat(value) / 100;
+        return propOffset + toPx(value);
 
     } else {
 
-        const el = value === true ? $el.parentNode : query(value, $el);
-
-        if (el) {
-            return offset(el).top + el.offsetHeight;
-        }
+        return offset(value === true ? $el.parentNode : query(value, $el)).bottom;
 
     }
 }

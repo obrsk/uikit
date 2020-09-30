@@ -1,3 +1,4 @@
+import {Promise} from './promise';
 /*
     Based on:
     Copyright (c) 2016 Wilson Page wilsonpage@me.com
@@ -25,26 +26,35 @@ export const fastdom = {
         return remove(this.reads, task) || remove(this.writes, task);
     },
 
-    flush() {
-
-        runTasks(this.reads);
-        runTasks(this.writes.splice(0, this.writes.length));
-
-        this.scheduled = false;
-
-        if (this.reads.length || this.writes.length) {
-            scheduleFlush();
-        }
-
-    }
+    flush
 
 };
 
-function scheduleFlush() {
-    if (!fastdom.scheduled) {
-        fastdom.scheduled = true;
-        requestAnimationFrame(fastdom.flush.bind(fastdom));
+function flush(recursion = 1) {
+    runTasks(fastdom.reads);
+    runTasks(fastdom.writes.splice(0, fastdom.writes.length));
+
+    fastdom.scheduled = false;
+
+    if (fastdom.reads.length || fastdom.writes.length) {
+        scheduleFlush(recursion + 1);
     }
+}
+
+const RECURSION_LIMIT = 4;
+function scheduleFlush(recursion) {
+
+    if (fastdom.scheduled) {
+        return;
+    }
+
+    fastdom.scheduled = true;
+    if (recursion && recursion < RECURSION_LIMIT) {
+        Promise.resolve().then(() => flush(recursion));
+    } else {
+        requestAnimationFrame(() => flush());
+    }
+
 }
 
 function runTasks(tasks) {

@@ -1,4 +1,4 @@
-import {pointerDown} from 'uikit-util';
+import {$, attr, inBrowser, matches} from 'uikit-util';
 
 export default {
 
@@ -15,12 +15,15 @@ export default {
     },
 
     connected() {
-        this.startAutoplay();
-        this.userInteracted = false;
+        this.autoplay && this.startAutoplay();
     },
 
     disconnected() {
         this.stopAutoplay();
+    },
+
+    update() {
+        attr(this.slides, 'tabindex', '-1');
     },
 
     events: [
@@ -29,52 +32,18 @@ export default {
 
             name: 'visibilitychange',
 
-            el: document,
+            el: inBrowser && document,
+
+            filter() {
+                return this.autoplay;
+            },
 
             handler() {
                 if (document.hidden) {
                     this.stopAutoplay();
                 } else {
-                    !this.userInteracted && this.startAutoplay();
+                    this.startAutoplay();
                 }
-            }
-
-        },
-
-        {
-
-            name: pointerDown,
-            handler() {
-                this.userInteracted = true;
-                this.stopAutoplay();
-            }
-
-        },
-
-        {
-
-            name: 'mouseenter',
-
-            filter() {
-                return this.autoplay;
-            },
-
-            handler() {
-                this.isHovering = true;
-            }
-
-        },
-
-        {
-
-            name: 'mouseleave',
-
-            filter() {
-                return this.autoplay;
-            },
-
-            handler() {
-                this.isHovering = false;
             }
 
         }
@@ -87,19 +56,18 @@ export default {
 
             this.stopAutoplay();
 
-            if (this.autoplay) {
-                this.interval = setInterval(
-                    () => !(this.isHovering && this.pauseOnHover) && !this.stack.length && this.show('next'),
-                    this.autoplayInterval
-                );
-            }
+            this.interval = setInterval(
+                () => (!this.draggable || !$(':focus', this.$el))
+                    && (!this.pauseOnHover || !matches(this.$el, ':hover'))
+                    && !this.stack.length
+                    && this.show('next'),
+                this.autoplayInterval
+            );
 
         },
 
         stopAutoplay() {
-            if (this.interval) {
-                clearInterval(this.interval);
-            }
+            this.interval && clearInterval(this.interval);
         }
 
     }

@@ -1,6 +1,6 @@
 import Media from '../mixin/media';
 import Togglable from '../mixin/togglable';
-import {closest, hasTouch, includes, isTouch, isVisible, matches, pointerEnter, pointerLeave, queryAll, trigger} from 'uikit-util';
+import {closest, hasClass, hasTouch, includes, isTouch, isVisible, matches, pointerEnter, pointerLeave, queryAll, trigger} from 'uikit-util';
 
 export default {
 
@@ -12,26 +12,33 @@ export default {
         href: String,
         target: null,
         mode: 'list',
+        queued: Boolean
     },
 
     data: {
         href: false,
         target: false,
         mode: 'click',
-        queued: true,
+        queued: true
     },
 
     computed: {
 
-        target({href, target}, $el) {
-            target = queryAll(target || href, $el);
-            return target.length && target || [$el];
+        target: {
+
+            get({href, target}, $el) {
+                target = queryAll(target || href, $el);
+                return target.length && target || [$el];
+            },
+
+            watch() {
+                trigger(this.target, 'updatearia', [this]);
+            },
+
+            immediate: true
+
         }
 
-    },
-
-    connected() {
-        trigger(this.target, 'updatearia', [this]);
     },
 
     events: [
@@ -62,15 +69,11 @@ export default {
 
             handler(e) {
 
-                if (!isTouch(e) && !includes(this.mode, 'click')) {
-                    return;
-                }
-
                 // TODO better isToggled handling
                 let link;
-                if (closest(e.target, 'a[href="#"], a[href=""], button')
+                if (closest(e.target, 'a[href="#"], a[href=""]')
                     || (link = closest(e.target, 'a[href]')) && (
-                        this.cls
+                        this.cls && !hasClass(this.target, this.cls.split(' ')[0])
                         || !isVisible(this.target)
                         || link.hash && matches(this.target, link.hash)
                     )
@@ -88,11 +91,9 @@ export default {
     update: {
 
         read() {
-            if (!includes(this.mode, 'media') || !this.media) {
-                return false;
-            }
-
-            return {match: this.matchMedia};
+            return includes(this.mode, 'media') && this.media
+                ? {match: this.matchMedia}
+                : false;
         },
 
         write({match}) {
@@ -111,7 +112,21 @@ export default {
     methods: {
 
         toggle(type) {
-            if (trigger(this.target, type || 'toggle', [this])) {
+
+            if (!trigger(this.target, type || 'toggle', [this])) {
+                return;
+            }
+
+            if (this.queued) {
+
+                const toggled = this.target.filter(this.isToggled);
+                this.toggleElement(toggled, false).then(() =>
+                    this.toggleElement(this.target.filter(el =>
+                        !includes(toggled, el)
+                    ), true)
+                );
+
+            } else {
                 this.toggleElement(this.target);
             }
         }

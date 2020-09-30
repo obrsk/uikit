@@ -1,16 +1,10 @@
-/* eslint-env node */
-const util = require('./util');
-const {promisify} = require('util');
-const glob = promisify(require('glob'));
+const {glob, minify, read, renderLess, write, validClassName} = require('./util');
 const argv = require('minimist')(process.argv.slice(2));
 
 argv._.forEach(arg => {
     const tokens = arg.split('=');
     argv[tokens[0]] = tokens[1] || true;
 });
-
-const currentScopeRegex = /\/\* scoped: ([^*]*) \*\//;
-const currentScopeLegacyRegex = /\.(uk-scope)/;
 
 if (argv.h || argv.help) {
     console.log(`
@@ -26,10 +20,13 @@ if (argv.h || argv.help) {
 
     `);
 } else {
-    startProcess();
+    run().catch(({message}) => {
+        console.error(message);
+        process.exitCode = 1;
+    });
 }
 
-async function startProcess() {
+async function run() {
 
     const files = await readFiles();
     const oldScope = getScope(files);
@@ -42,11 +39,11 @@ async function startProcess() {
             const newScope = getNewScope();
 
             if (oldScope === newScope) {
-                throw new Error(`Already scoped with: ${oldScope}`)
+                throw new Error(`Already scoped with: ${oldScope}`);
             }
 
             cleanup(files, oldScope);
-            await scope(files, newScope)
+            await scope(files, newScope);
 
         } else {
             await scope(files, getNewScope());
@@ -62,10 +59,10 @@ async function startProcess() {
 
 async function readFiles() {
 
-    let files = await glob('dist/**/!(*.min).css');
+    const files = await glob('dist/**/!(*.min).css');
     return Promise.all(files.map(async file => {
 
-        const data = await util.read(file);
+        const data = await read(file);
         return {file, data};
 
     }));
@@ -73,16 +70,14 @@ async function readFiles() {
 }
 
 function getScope(files) {
-    let scope;
-    files.some(({data}) => (scope = isScoped(data)));
-    return scope;
+    return files.reduce((scope, {data}) => scope || isScoped(data), '');
 }
 
 function getNewScope() {
 
     const scopeFromInput = argv.scope || argv.s || 'uk-scope';
 
-    if (util.validClassName.test(scopeFromInput)) {
+    if (validClassName.test(scopeFromInput)) {
         return scopeFromInput;
     } else {
         throw `Illegal scope-name: ${scopeFromInput}`;
@@ -94,7 +89,7 @@ async function scope(files, scope) {
         files.map(async store => {
             try {
 
-                const output = await util.renderLess(`.${scope} {\n${stripComments(store.data)}\n}`);
+                const output = await renderLess(`.${scope} {\n${stripComments(store.data)}\n}`);
                 store.data = `/* scoped: ${scope} */\n${
                     output
                         .replace(new RegExp(`.${scope} ${/{(.|[\r\n])*?}/.source}`), '')
@@ -102,39 +97,35 @@ async function scope(files, scope) {
                 }`;
 
             } catch (e) {
-                console.error(store.file, e.message);
+                console.error(store.file, e);
             }
         })
-    )
+    );
 }
 
 async function store(files) {
     return Promise.all(
         files.map(async ({file, data}) => {
-            await util.write(file, data);
-            await util.minify(file);
+            await write(file, data);
+            await minify(file);
         })
     );
 }
+
+const currentScopeRe = /\/\* scoped: ([^*]*) \*\//;
+const currentScopeLegacyRe = /\.(uk-scope)/;
 
 function cleanup(files, scope) {
     const string = scope.split(' ').map(scope => `.${scope}`).join(' ');
     files.forEach(store => {
         store.data = store.data
             .replace(new RegExp(/ */.source + string + / ({[\s\S]*?})?/.source, 'g'), '') // replace classes
-            .replace(new RegExp(currentScopeRegex.source, 'g'), ''); // remove scope comment
+            .replace(new RegExp(currentScopeRe.source, 'g'), ''); // remove scope comment
     });
 }
 
 function isScoped(data) {
-
-    let varName = data.match(currentScopeRegex);
-    if (varName) {
-        return varName[1];
-    } else {
-        varName = data.match(currentScopeLegacyRegex);
-    }
-    return varName && varName[1];
+    return (data.match(currentScopeRe) || data.match(currentScopeLegacyRe) || [])[1];
 }
 
 function stripComments(input) {

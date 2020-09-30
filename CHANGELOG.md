@@ -2,18 +2,528 @@
 
 ## WIP
 
+### Fixed
+
+- Fix prefix script
+
+## 3.5.8 (September 25, 2020)
+
 ### Added
 
-- Add text secondary to Text component
-- Add `strokeAnimation` option to SVG component
-- Add `stroke` option to Parallax component
-- Add `dataSrc` as primary option to Image component
-- Parallax component supports more units
+- Add lightbox button active hook
 
 ### Changed
 
+- IMPORTANT: Set `@pagination-margin-horizontal` to `0` and use new `@pagination-item-padding-vertical` and `@pagination-item-padding-horizontal`
+
+### Fixed
+
+- Fix lightbox button focus state
+- Fix Slider component transition bug in iOS 14.0
+
+## 3.5.7 (August 27, 2020)
+
+### Fixed
+
+- Fix Switcher component no longer toggles an already active item
+- Fix 'positionAt' function not detecting flip state correctly
+- Fix 'z-index' for stacked Modals
+
+## 3.5.6 (August 13, 2020)
+
+### Changed
+
+- Sticky component uses window.Date instead of window.performance
+- Sticky component with sticky-on-up no longer hides when Dropdown shows
+
+### Fixed
+
+- Fix slidenav color in Lightbox component
+- Fix inverse colors for link toggle in Link component
+- Sticky component remains inactive if hidden
+- Revert dropbar mode `push` is only applied if Navbar is positioned static
+- Fix animations not resolving if user canceled
+
+## 3.5.5 (July 14, 2020)
+
+### Added
+
+- Add list marker utility support for WebKit
+- Add `uk-text-default` to Text component 
+- Add multiple targets to Filter component
+
+### Fixed
+
+- Updates no longer throw error after too many recursions, but delay into next frame
+- Fix empty slider throws exception
+- Fix pointer events ignored on SVGs in Sortable component
+- Fix Grid component divider rendering
+- Fix `<select>` closes Drop component in hover mode in Firefox 
+
+## 3.5.4 (June 12, 2020)
+
+### Added
+
+- Image component triggers 'error' event on failing to load image
+
+### Fixed
+
+- Fix prop observer for dataSrc option in Image component
+- Fix ajax function supports responseType 'json' in IE 11 
+- Fix Accordion component with `multiple: true` and `collapsible: false`
+
+## 3.5.3 (May 29, 2020)
+
+### Fixed
+
+- Fix regression in Grid component with parallax option
+
+## 3.5.2 (May 29, 2020)
+
+### Fixed
+
+- Fix uglifyjs removes self-assignments
+
+## 3.5.1 (May 29, 2020)
+
+### Fixed
+
+- Fix regression in Animation API
+- Fix regression Drop component
+- Fix regression in Sass source
+
+## 3.5.0 (May 28, 2020)
+
+### Added
+
+- Add type, color and size modifiers to List component
+
+### Changed
+
+- IMPORTANT: Renamed Less variable parts `xxlarge` to `2xlarge`
+- Replace clearfix by creating a block formatting context with display flow-root
+
+### Deprecated
+
+- Width XXLarge: Use `uk-width-2xlarge` instead of `uk-width-xxlarge`
+
+### Fixed
+
+- Fix positioning issue with Drop components in Firefox
+- Fix Dropbar causing endless loop in Firefox
+
+## 3.4.6 (May 11, 2020)
+
+### Fixed
+
+- Fix regression in Switcher component
+
+## 3.4.5 (May 11, 2020)
+
+### Added
+
+- Add inBrowser check to enable server-side rendering 
+
+### Fixed
+
+- Fix Switcher responsiveness
+- Fix `isInView()` no longer returns true for adjacent rectangles
+- Fix compatibility with browsers that support `Object.prototype.watch()`
+
+## 3.4.4 (May 7, 2020)
+
+### Fixed
+
+- Fix Scrollspy component stuck in wrong state
+- Fix regression in Grid component with masonry
+
+## 3.4.3 (May 5, 2020)
+
+### Changed
+
+- Improve attribute state observer performance
+
+### Fixed
+
+- Fix Search Icon with large modifier
+- Fix Grid divider in RTL mode
+- Fix Slider component responsiveness
+
+## 3.4.2 (April 20, 2020)
+
+### Added
+
+- Hide Drop components on `Esc` keypress
+
+### Fixed
+
+- Fix `quote-right` icon empty in RTL mode
+- Revert: Fix Sticky component correctly updates on `update`
+
+## 3.4.1 (April 16, 2020)
+
+### Fixed
+
+- Fix `bottom` if offset is `0` in Sticky component
+- Fix dropbar mode `push` is only applied if Navbar is positioned static
+- Fix Sticky component correctly updates on `update`
+- Fix Sticky component handles `vh` values for `top`and `bottom` options
+- Fix Sticky component sets its width with fraction
+- Fix Sticky component with `show-on-up` and `bottom` option updates correctly
+- Fix Tooltip component no longer disappears on SVG shape elements
+- Fix regression with Modal/Offcanvas component not opening in IE 11
+
+## 3.4.0 (April 9, 2020)
+
+### Added
+
+- Add `attrs` option to Lightbox items
+- Add additional url parameters to YouTube/Vimeo embed URLs in Lightbox component
+
+### Changed
+
+- Change default dimensions to 1920x1080 for YouTube in Lightbox component 
+
+### Fixed
+
+- Fix subnav not wrapping into the next line correctly when using `uk-margin` attribute
+- Fix selected `uk-text-background` text being visible in Firefox
+- Fix Scrollspy Nav component activating previous item in Firefox
+- Fix toggling Offcanvas component
+- Fix Sortable component unable to sort table rows
+- Fix autoplay for YouTube and Vimeo videos in Lightbox component
+- Fix dragging slides in Lightbox component in Chrome mobile
+
+## 3.3.7 (March 19, 2020)
+
+### Fixed
+
+- Fix Height Match component not matching empty elements
+- Fix Scrollspy Nav component activating wrong elements
+- Fix Modal/Drop close on bgClick behaviour 
+- Fix `z-index` on Modal stacked dialogs
+
+## 3.3.6 (March 12, 2020)
+
+### Added
+
+- Add `offset` option to Accordion component
+
+### Changed
+
+- Removed `duration` option from Scroll component
+
+### Fixed
+
+- Fix regression in Accordion component
+
+## 3.3.5 (March 12, 2020)
+
+### Fixed
+
+- Fix regression in Sortable component
+
+## 3.3.4 (March 12, 2020)
+
+### Changed
+
+- `getEventPos` returns client coordinates only
+
+### Fixed
+
+- Fix Drop component does not close on pointerleave in Firefox
+- Fix Switcher component sets active state on ignored item
+- Fix Accordion component triggers events on elements only
+- Fix Accordion component no longer wraps its content without transition
+- Fix missing `$emit` function
+- Fix Sortable component performance
+- Fix prevent showing/hiding of Tooltip component
+
+## 3.3.3 (February 25, 2020)
+
+### Changed
+
+- Improve Tooltip component performance
+- Notifications remove their container if it's empty
+- The promise object returned by Modal Dialogs holds a reference to the Modal component itself.
+
+### Fixed
+
+- Fix style for breadcrumbs without last active item
+- Fix infinite loop in Slider component
+- Fix IE 11 compatibility
+- Fix Spinner component in RTL mode
+- Fix animating `stroke` in Parallax component when element is hidden
+
+## 3.3.2 (February 17, 2020)
+
+### Fixed
+
+- Fix accessing computed properties after component has been disconnected
+- Fix Modal dialogs not being removed from DOM after close
+- Fix Lightbox opening only once
+- Fix updates having wrong type
+
+## 3.3.1 (February 4, 2020)
+
+### Changed
+
+- Improve update performance
+
+### Fixed
+
+- Fix countdown separator line-height
+- Fix Cover component covers positioned parent element
+
+## 3.3.0 (January 23, 2020)
+
+### Added
+
+- Add container xlarge modifier
+
+### Changed
+
+- IMPORTANT: Change `uk-container-large` width. Use `uk-container-xlarge`
+
+### Fixed
+
+- Fix `position` takes offsetParent's border width into account
+
+## 3.2.7 (January 13, 2020)
+
+### Fixed
+
+- Fix Drop component has wrong state after disconnect
+- Fix `repeat` option in Scrollspy component in Firefox
+
+## 3.2.6 (December 17, 2019)
+
+### Fixed
+
+- Fix regression with custom icons build task
+
+## 3.2.5 (December 17, 2019)
+
+### Added
+
+- Prevent content overflow if `max-width: 100%` is used inside Position component
+- Add `parent` util function
+- Add `children` util function
+- Add `isElement` util function
+
+### Fixed
+
+- Accordion component triggers scroll on page load
+- Fix regression in Scroll component in Edge and IE
+
+## 3.2.4 (December 3, 2019)
+
+### Added
+
+- Parallax, Scroll, Scrollspy Nav components work inside of scrollable container
+- Expose `scrollIntoView` utility function
+
+### Fixed
+
+- Fix scrolling containers while dragging in Sortable component
+- Fix show/hide behaviour in Drop component 
+- Fix Accordion component will scroll title into view if needed
+- Fix component initialization without element
+
+## 3.2.3 (November 6, 2019)
+
+### Fixed
+
+- Fix initializing components with jQuery elements
+
+## 3.2.2 (October 23, 2019)
+
+### Added
+
+- Prevent endless update loops
+
+### Changed
+
+- Improve event.preventDefault behaviour in Toggle component
+- Improve initial boot
+
+### Fixed
+
+- Fix event delegation with `self` filter
+
+## 3.2.1 (October 1, 2019)
+
+### Added
+
+- Add support for `input type="submit"` to Button component
+- Add `selSlides` option to Slider/Slideshow component
+
+### Fixed
+
+- Fix Slider throws error if initialized with no slides
+- Fix Slider/Slideshow crash in IE
+- Fix Slider/Slideshow drag no longer starts on input elements
+- Fix Slider/Slideshow Parallax shows wrong initial state
+- Fix `isPlainObject` to work across iframes
+- Fix Scrollspy causes endless update loop
+
+## 3.2.0 (September 5, 2019)
+
+### Added
+
+- Add column and row gutter to Grid component
+
+### Removed
+
+- Remove `@text-bold-font-weight` variable
+
+### Fixed
+
+- Fix countdown line-height on small devices
+
+## 3.1.9 (September 2, 2019)
+
+### Added
+
+- Add `last` utility function
+
+### Fixed
+
+- Fix Slideshow invisible after switching tabs in Switcher
+- Fix lazy loading images in Img component in UC Browser
+- Fix opening Offcanvas/Modal through buttons
+
+## 3.1.8 (August 29, 2019)
+
+### Added
+
+- Add font weight and style modifier
+- Add `self` option to `on` function
+
+### Changed
+
+- Improve `padding-bottom` calculation for Grid with `parallax: true`
+- Make `selMinHeight` in the Flex Bug mixin a prop
+
+### Fixed
+
+- Fix Modal close on bgClick behaviour
+- Fix spreading event args on delegated event listeners
+- Fix clicking an empty link within itself no longer closes the Drop
+- Fix IE 11 compatibility
+- Fix empty tooltips will no longer show
+
+## 3.1.7 (July 31, 2019)
+
+### Changed
+
+- By default the Offcanvas `container` option is `false` now
+- The `focusable` attribute on SVG/Icon component makes SVG focusable in IE
+
+### Fixed
+
+- Fix Slideshow/Slider triggering show events to often initially
+- Fix swipe gestures in Switcher component (Android)
+- Ensure at most one Height Viewport component set to `expand` is active
+- Height Viewport component no longer calculates its height if invisible
+- Fix using Sortable in scrolling container 
+- Fix lazy loading images if parent element is fully clipped
+- Fix clicking Slideshow with `draggable: false` no longer pauses autoplay
+- Fix toggling modal while transition is in progress
+- Fix Height Viewport component growing indefinitely if positioned above document
+- Fix Height Viewport component uses height with fractions
+- Fix Margin component for rows 1 pixel in height
+
+## 3.1.6 (June 19, 2019)
+
+### Added
+
+- Add style for input with datalist
+
+### Fixed
+
+- Fix image shrinking in centered and absolutely positioned navbars
+- Fix Custom Form not resetting on form `reset` event
+- Fix leader inverse hook
+- Fix divider vertical inverse hook
+
+## 3.1.5 (May 17, 2019)
+
+### Added
+
+- Add link toggle to Link component
+- Add breakpoint classes for margin auto and remove
+- Add Etsy icon
+
+### Fixed
+
+- Fix Dropbar closing unexpectedly
+- Fix Sortable `click` event prevention in Firefox
+- Fix JS error in Offcanvas component on touch devices
+- Icon components no longer have a primary option
+- Icon/Svg components no longer reset initially
+
+## 3.1.4 (April 24, 2019)
+
+### Fixed
+
+- Fix selector engine
+- Fix CSS selector in Lightbox component
+- Fix Drop not closing when Toggle component is clicked
+ 
+## 3.1.3 (April 23, 2019)
+
+### Fixed
+
+- Fix Scrollspy Nav component
+- Fix closing Lightbox causes text selection in Firefox
+
+## 3.1.2 (April 18, 2019)
+
+### Changed
+
+- IMPORTANT: Change `@deprecated` variable to `false`
+
+### Fixed
+
+- Fix filter controls active state in Filter component
+
+## 3.1.1 (April 18, 2019)
+
+### Fixed
+
+- Fix Sass distribution
+- Fix Lightbox opens with wrong index
+
+## 3.1.0 (April 17, 2019)
+
+### Added
+
+- Add deprecated flag to Less variables
+- Add size modifiers to Heading component
+- Add SVG stroke animation to Animation component
+- Add option to animate SVG strokes to SVG component
+- Add option to animate SVG strokes to Parallax component
+- Add support for more units to Parallax component
+- Add lazy loading support if Image component is used with SVG component
+- Add text secondary to Text component
+- Add `dataSrc` as primary option to Image component
+- Add `webp` as image type to Lightbox Panel component
+
+### Changed
+
+- Refactor divider, bullet and line modifiers in Heading component
 - Improve dimension handling in SVG component
-- Improve Image/Leader/Toggle component performance
+- Improve performance of Image, Leader and Toggle component
+- Autoplay is halted while Slideshow/Slider are active
+- Lightbox filters duplicate items by `source`
+- Rename `getPos` to `getEventPos`
+- Move code with side effects to `core.js`
+
+### Deprecated
+
+- Primary Heading: Use `uk-heading-medium` instead of `uk-heading-primary`
+- Hero Heading: Use `uk-heading-xlarge` instead of `uk-heading-hero`
 
 ### Removed
 
@@ -21,9 +531,15 @@
 
 ### Fixed
 
-- Fix filter component initial active state
+- Fix rendering issue for scale in Transition component
+- Fix Filter component's initial active state
 - Fix translating `x` and `y` properties simultaneously in Parallax component
-- Class utils can handle SVGs in IE 11 now
+- Fix drag closes Lightbox
+- Fix Tooltip component (touch device)
+- Fix `hover` mode for Toggle component (touch device)
+- Fix Slideshow not setting `min-height` if ratio is set to `false`
+- Default prevent `click` event in Slider/Slideshow component after drag
+- Fix images being selected while dragging in Slider/Slideshow component
 
 ## 3.0.3 (January 29, 2019)
 
@@ -77,6 +593,7 @@
 - `css` function: Setting a CSS property to `NaN` no longer removes the property
 - Slide/Slideshow navs and Drops no longer blur after hiding
 - Changed the default `toggle` option for Switcher component to `> * > :first-child`
+- SVG component no longer moves `id` from element to svg
 
 ### Removed
 
@@ -126,7 +643,7 @@
 
 - Fix modal not opening on first click in Angular apps
 - Fix filter controls active state in Filter component
-- Fix Masonry Grid in Rtl mode
+- Fix Masonry Grid in RTL mode
 - Make sure autoplay does not resume after user interaction in slider-autoplay mixin
 - Fix `hasClass` in IE11
 

@@ -23,18 +23,18 @@ export function transition(element, props, duration = 400, timing = 'linear') {
                 clearTimeout(timer);
                 removeClass(element, 'uk-transition');
                 css(element, {
-                    'transition-property': '',
-                    'transition-duration': '',
-                    'transition-timing-function': ''
+                    transitionProperty: '',
+                    transitionDuration: '',
+                    transitionTimingFunction: ''
                 });
                 type === 'transitioncanceled' ? reject() : resolve();
-            }, false, ({target}) => element === target);
+            }, {self: true});
 
             addClass(element, 'uk-transition');
             css(element, assign({
-                'transition-property': Object.keys(props).map(propName).join(','),
-                'transition-duration': `${duration}ms`,
-                'transition-timing-function': timing
+                transitionProperty: Object.keys(props).map(propName).join(','),
+                transitionDuration: `${duration}ms`,
+                transitionTimingFunction: timing
             }, props));
 
         })
@@ -62,69 +62,31 @@ export const Transition = {
 };
 
 const animationPrefix = 'uk-animation-';
-const clsCancelAnimation = 'uk-cancel-animation';
 
 export function animate(element, animation, duration = 200, origin, out) {
 
     return Promise.all(toNodes(element).map(element =>
         new Promise((resolve, reject) => {
 
-            if (hasClass(element, clsCancelAnimation)) {
-                requestAnimationFrame(() =>
-                    Promise.resolve().then(() =>
-                        animate(...arguments).then(resolve, reject)
-                    )
-                );
-                return;
-            }
+            trigger(element, 'animationcanceled');
+            const timer = setTimeout(() => trigger(element, 'animationend'), duration);
 
-            let cls = `${animation} ${animationPrefix}${out ? 'leave' : 'enter'}`;
+            once(element, 'animationend animationcanceled', ({type}) => {
 
-            if (startsWith(animation, animationPrefix)) {
+                clearTimeout(timer);
 
-                if (origin) {
-                    cls += ` uk-transform-origin-${origin}`;
-                }
+                type === 'animationcanceled' ? reject() : resolve();
 
-                if (out) {
-                    cls += ` ${animationPrefix}reverse`;
-                }
-
-            }
-
-            reset();
-
-            once(element, 'animationend animationcancel', ({type}) => {
-
-                let hasReset = false;
-
-                if (type === 'animationcancel') {
-                    reject();
-                    reset();
-                } else {
-                    resolve();
-                    Promise.resolve().then(() => {
-                        hasReset = true;
-                        reset();
-                    });
-                }
-
-                requestAnimationFrame(() => {
-                    if (!hasReset) {
-                        addClass(element, clsCancelAnimation);
-
-                        requestAnimationFrame(() => removeClass(element, clsCancelAnimation));
-                    }
-                });
-
-            }, false, ({target}) => element === target);
-
-            css(element, 'animationDuration', `${duration}ms`);
-            addClass(element, cls);
-
-            function reset() {
                 css(element, 'animationDuration', '');
                 removeClasses(element, `${animationPrefix}\\S*`);
+
+            }, {self: true});
+
+            css(element, 'animationDuration', `${duration}ms`);
+            addClass(element, animation, animationPrefix + (out ? 'leave' : 'enter'));
+
+            if (startsWith(animation, animationPrefix)) {
+                addClass(element, origin && `uk-transform-origin-${origin}`, out && `${animationPrefix}reverse`);
             }
 
         })
@@ -135,9 +97,7 @@ export function animate(element, animation, duration = 200, origin, out) {
 const inProgress = new RegExp(`${animationPrefix}(enter|leave)`);
 export const Animation = {
 
-    in(element, animation, duration, origin) {
-        return animate(element, animation, duration, origin, false);
-    },
+    in: animate,
 
     out(element, animation, duration, origin) {
         return animate(element, animation, duration, origin, true);
@@ -148,7 +108,7 @@ export const Animation = {
     },
 
     cancel(element) {
-        trigger(element, 'animationcancel');
+        trigger(element, 'animationcanceled');
     }
 
 };

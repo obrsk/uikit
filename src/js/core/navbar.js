@@ -1,6 +1,6 @@
 import Class from '../mixin/class';
 import FlexBug from '../mixin/flex-bug';
-import {$, $$, addClass, after, assign, css, height, includes, isRtl, isVisible, matches, noop, Promise, query, remove, toFloat, Transition, within} from 'uikit-util';
+import {$, $$, addClass, after, assign, css, hasClass, height, includes, isRtl, isVisible, matches, noop, Promise, query, remove, toFloat, Transition, within} from 'uikit-util';
 
 export default {
 
@@ -55,41 +55,51 @@ export default {
             return `bottom-${align}`;
         },
 
-        dropdowns({dropdown, clsDrop}, $el) {
-            return $$(`${dropdown} .${clsDrop}`, $el);
-        }
+        dropbar: {
 
-    },
+            get({dropbar}) {
 
-    beforeConnect() {
+                if (!dropbar) {
+                    return null;
+                }
 
-        const {dropbar} = this.$props;
+                dropbar = this._dropbar || query(dropbar, this.$el) || $('+ .uk-navbar-dropbar', this.$el);
 
-        this.dropbar = dropbar && (query(dropbar, this.$el) || $('+ .uk-navbar-dropbar', this.$el) || $('<div></div>'));
+                return dropbar ? dropbar : (this._dropbar = $('<div></div>'));
 
-        if (this.dropbar) {
+            },
 
-            addClass(this.dropbar, 'uk-navbar-dropbar');
+            watch(dropbar) {
+                addClass(dropbar, 'uk-navbar-dropbar');
+            },
 
-            if (this.dropbarMode === 'slide') {
-                addClass(this.dropbar, 'uk-navbar-dropbar-slide');
-            }
+            immediate: true
+
+        },
+
+        dropdowns: {
+
+            get({dropdown, clsDrop}, $el) {
+                return $$(`${dropdown} .${clsDrop}`, $el);
+            },
+
+            watch(dropdowns) {
+                this.$create(
+                    'drop',
+                    dropdowns.filter(el => !this.getDropdown(el)),
+                    assign({}, this.$props, {boundary: this.boundary, pos: this.pos, offset: this.dropbar || this.offset})
+                );
+            },
+
+            immediate: true
+
         }
 
     },
 
     disconnected() {
         this.dropbar && remove(this.dropbar);
-    },
-
-    update() {
-
-        this.$create(
-            'drop',
-            this.dropdowns.filter(el => !this.getDropdown(el)),
-            assign({}, this.$props, {boundary: this.boundary, pos: this.pos, offset: this.dropbar || this.offset})
-        );
-
+        delete this._dropbar;
     },
 
     events: [
@@ -120,7 +130,7 @@ export default {
             handler() {
                 const active = this.getActive();
 
-                if (active && !matches(this.dropbar, ':hover')) {
+                if (active && !this.dropdowns.some(el => matches(el, ':hover'))) {
                     active.hide();
                 }
             }
@@ -147,15 +157,18 @@ export default {
         {
             name: 'show',
 
-            capture: true,
-
             filter() {
                 return this.dropbar;
             },
 
-            handler(_, drop) {
+            handler(_, {$el, dir}) {
+                if (!hasClass($el, this.clsDrop)) {
+                    return;
+                }
 
-                const {$el, dir} = drop;
+                if (this.dropbarMode === 'slide') {
+                    addClass(this.dropbar, 'uk-navbar-dropbar-slide');
+                }
 
                 this.clsDrop && addClass($el, `${this.clsDrop}-dropbar`);
 
@@ -190,6 +203,9 @@ export default {
             },
 
             handler(_, {$el}) {
+                if (!hasClass($el, this.clsDrop)) {
+                    return;
+                }
 
                 const active = this.getActive();
 

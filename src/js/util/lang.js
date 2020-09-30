@@ -1,10 +1,3 @@
-export function bind(fn, context) {
-    return function (a) {
-        const l = arguments.length;
-        return l ? l > 1 ? fn.apply(context, arguments) : fn.call(context, a) : fn.call(context);
-    };
-}
-
 const objPrototype = Object.prototype;
 const {hasOwnProperty} = objPrototype;
 
@@ -53,12 +46,27 @@ export function endsWith(str, search) {
     return endsWithFn.call(str, search);
 }
 
-const includesFn = function (search) { return ~this.indexOf(search); };
+const arrPrototype = Array.prototype;
+
+const includesFn = function (search, i) { return !!~this.indexOf(search, i); };
 const includesStr = strPrototype.includes || includesFn;
-const includesArray = Array.prototype.includes || includesFn;
+const includesArray = arrPrototype.includes || includesFn;
 
 export function includes(obj, search) {
     return obj && (isString(obj) ? includesStr : includesArray).call(obj, search);
+}
+
+const findIndexFn = arrPrototype.findIndex || function (predicate) {
+    for (let i = 0; i < this.length; i++) {
+        if (predicate.call(arguments[1], this[i], i, this)) {
+            return i;
+        }
+    }
+    return -1;
+};
+
+export function findIndex(array, predicate) {
+    return findIndexFn.call(array, predicate);
 }
 
 export const {isArray} = Array;
@@ -71,8 +79,9 @@ export function isObject(obj) {
     return obj !== null && typeof obj === 'object';
 }
 
+const {toString} = objPrototype;
 export function isPlainObject(obj) {
-    return isObject(obj) && Object.getPrototypeOf(obj) === objPrototype;
+    return toString.call(obj) === '[object Object]';
 }
 
 export function isWindow(obj) {
@@ -88,10 +97,13 @@ export function isJQuery(obj) {
 }
 
 export function isNode(obj) {
-    return obj instanceof Node || isObject(obj) && obj.nodeType >= 1;
+    return isObject(obj) && obj.nodeType >= 1;
 }
 
-const {toString} = objPrototype;
+export function isElement(obj) {
+    return isObject(obj) && obj.nodeType === 1;
+}
+
 export function isNodeCollection(obj) {
     return toString.call(obj).match(/^\[object (NodeList|HTMLCollection)\]$/);
 }
@@ -110,6 +122,15 @@ export function isNumber(value) {
 
 export function isNumeric(value) {
     return isNumber(value) || isString(value) && !isNaN(value - parseFloat(value));
+}
+
+export function isEmpty(obj) {
+    return !(isArray(obj)
+        ? obj.length
+        : isObject(obj)
+            ? Object.keys(obj).length
+            : false
+    );
 }
 
 export function isUndefined(value) {
@@ -136,7 +157,7 @@ export function toFloat(value) {
 }
 
 export function toNode(element) {
-    return isNode(element) || isWindow(element) || isDocument(element)
+    return isNode(element)
         ? element
         : isNodeCollection(element) || isJQuery(element)
             ? element[0]
@@ -145,17 +166,31 @@ export function toNode(element) {
                 : null;
 }
 
-const arrayProto = Array.prototype;
 export function toNodes(element) {
     return isNode(element)
         ? [element]
         : isNodeCollection(element)
-            ? arrayProto.slice.call(element)
+            ? arrPrototype.slice.call(element)
             : isArray(element)
                 ? element.map(toNode).filter(Boolean)
                 : isJQuery(element)
                     ? element.toArray()
                     : [];
+}
+
+export function toWindow(element) {
+    if (isWindow(element)) {
+        return element;
+    }
+
+    element = toNode(element);
+
+    return element
+        ? (isDocument(element)
+            ? element
+            : element.ownerDocument
+        ).defaultView
+        : window;
 }
 
 export function toList(value) {
@@ -185,9 +220,10 @@ export function isEqual(value, other) {
 }
 
 export function swap(value, a, b) {
-    return value.replace(new RegExp(`${a}|${b}`, 'mg'), match => {
-        return match === a ? b : a;
-    });
+    return value.replace(
+        new RegExp(`${a}|${b}`, 'g'),
+        match => match === a ? b : a
+    );
 }
 
 export const assign = Object.assign || function (target, ...args) {
@@ -205,6 +241,10 @@ export const assign = Object.assign || function (target, ...args) {
     return target;
 };
 
+export function last(array) {
+    return array[array.length - 1];
+}
+
 export function each(obj, cb) {
     for (const key in obj) {
         if (false === cb(obj[key], key)) {
@@ -214,13 +254,21 @@ export function each(obj, cb) {
     return true;
 }
 
-export function sortBy(collection, prop) {
-    return collection.sort(({[prop]: propA = 0}, {[prop]: propB = 0}) =>
+export function sortBy(array, prop) {
+    return array.sort(({[prop]: propA = 0}, {[prop]: propB = 0}) =>
         propA > propB
             ? 1
             : propB > propA
                 ? -1
                 : 0
+    );
+}
+
+export function uniqueBy(array, prop) {
+    const seen = new Set();
+    return array.filter(({[prop]: check}) => seen.has(check)
+        ? false
+        : seen.add(check) || true // IE 11 does not return the Set object
     );
 }
 

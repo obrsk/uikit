@@ -1,7 +1,7 @@
+import {isIE} from './env';
 import {within} from './filter';
-import {pointerCancel} from './env';
 import {closest, findAll} from './selector';
-import {isArray, isFunction, isString, toNode, toNodes} from './lang';
+import {isArray, isBoolean, isFunction, isString, toNode, toNodes} from './lang';
 
 export function on(...args) {
 
@@ -9,13 +9,19 @@ export function on(...args) {
 
     targets = toEventTargets(targets);
 
+    if (listener.length > 1) {
+        listener = detail(listener);
+    }
+
+    if (useCapture && useCapture.self) {
+        listener = selfFilter(listener);
+    }
+
     if (selector) {
         listener = delegate(targets, selector, listener);
     }
 
-    if (listener.length > 1) {
-        listener = detail(listener);
-    }
+    useCapture = useCaptureFilter(useCapture);
 
     type.split(' ').forEach(type =>
         targets.forEach(target =>
@@ -26,6 +32,7 @@ export function on(...args) {
 }
 
 export function off(targets, type, listener, useCapture = false) {
+    useCapture = useCaptureFilter(useCapture);
     targets = toEventTargets(targets);
     type.split(' ').forEach(type =>
         targets.forEach(target =>
@@ -93,7 +100,21 @@ function delegate(delegates, selector, listener) {
 }
 
 function detail(listener) {
-    return e => isArray(e.detail) ? listener(...[e].concat(e.detail)) : listener(e);
+    return e => isArray(e.detail) ? listener(e, ...e.detail) : listener(e);
+}
+
+function selfFilter(listener) {
+    return function (e) {
+        if (e.target === e.currentTarget || e.target === e.current) {
+            return listener.call(null, e);
+        }
+    };
+}
+
+function useCaptureFilter(options) {
+    return options && isIE && !isBoolean(options)
+        ? !!options.capture
+        : options;
 }
 
 function isEventTarget(target) {
@@ -114,17 +135,13 @@ export function toEventTargets(target) {
                     : toNodes(target);
 }
 
-export function preventClick() {
+export function isTouch(e) {
+    return e.pointerType === 'touch' || !!e.touches;
+}
 
-    const timer = setTimeout(once(document, 'click', e => {
+export function getEventPos(e) {
+    const {touches, changedTouches} = e;
+    const {clientX: x, clientY: y} = touches && touches[0] || changedTouches && changedTouches[0] || e;
 
-        e.preventDefault();
-        e.stopImmediatePropagation();
-
-        clearTimeout(timer);
-
-    }, true));
-
-    trigger(document, pointerCancel);
-
+    return {x, y};
 }

@@ -5,37 +5,34 @@ export default {
     args: 'src',
 
     props: {
-        id: String,
+        id: Boolean,
         icon: String,
         src: String,
         style: String,
         width: Number,
         height: Number,
         ratio: Number,
-        'class': String,
+        class: String,
         strokeAnimation: Boolean,
+        focusable: Boolean, // IE 11
         attributes: 'list'
     },
 
     data: {
         ratio: 1,
-        id: false,
-        include: ['id', 'style', 'class'],
-        'class': '',
+        include: ['style', 'class', 'focusable'],
+        class: '',
         strokeAnimation: false
+    },
+
+    beforeConnect() {
+        this.class += ' uk-svg';
     },
 
     connected() {
 
-        this.class += ' uk-svg';
-
         if (!this.icon && includes(this.src, '#')) {
-
-            const parts = this.src.split('#');
-
-            if (parts.length > 1) {
-                [this.src, this.icon] = parts;
-            }
+            [this.src, this.icon] = this.src.split('#');
         }
 
         this.svg = this.getSvg().then(el => {
@@ -48,7 +45,7 @@ export default {
     disconnected() {
 
         if (isVoidElement(this.$el)) {
-            attr(this.$el, {hidden: null, id: this.id || null});
+            this.$el.hidden = false;
         }
 
         if (this.svg) {
@@ -166,7 +163,7 @@ function parseSVG(svg, icon) {
     return svg && svg.hasChildNodes() && svg;
 }
 
-const symbolRe = /<symbol(.*?id=(['"])(.*?)\2[^]*?<\/)symbol>/g;
+const symbolRe = /<symbol([^]*?id=(['"])(.+?)\2[^]*?<\/)symbol>/g;
 const symbols = {};
 
 function parseSymbols(svg, icon) {
@@ -175,12 +172,12 @@ function parseSymbols(svg, icon) {
 
         symbols[svg] = {};
 
+        symbolRe.lastIndex = 0;
+
         let match;
         while ((match = symbolRe.exec(svg))) {
             symbols[svg][match[3]] = `<svg xmlns="http://www.w3.org/2000/svg"${match[1]}svg>`;
         }
-
-        symbolRe.lastIndex = 0;
 
     }
 
@@ -198,29 +195,32 @@ function applyAnimation(el) {
 }
 
 export function getMaxPathLength(el) {
-    return Math.ceil(Math.max(...$$('[stroke]', el).map(stroke =>
-        stroke.getTotalLength && stroke.getTotalLength() || 0
-    ).concat([0])));
+    return Math.ceil(Math.max(0, ...$$('[stroke]', el).map(stroke => {
+        try {
+            return stroke.getTotalLength();
+        } catch (e) {
+            return 0;
+        }
+    })));
 }
 
 function insertSVG(el, root) {
+
     if (isVoidElement(root) || root.tagName === 'CANVAS') {
 
-        attr(root, {hidden: true, id: null});
+        root.hidden = true;
 
         const next = root.nextElementSibling;
         return equals(el, next)
             ? next
             : after(root, el);
 
-    } else {
-
-        const last = root.lastElementChild;
-        return equals(el, last)
-            ? last
-            : append(root, el);
-
     }
+
+    const last = root.lastElementChild;
+    return equals(el, last)
+        ? last
+        : append(root, el);
 }
 
 function equals(el, other) {

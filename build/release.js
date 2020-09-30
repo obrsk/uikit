@@ -1,21 +1,22 @@
-/* eslint-env node */
 const fs = require('fs');
-const util = require('./util');
 const {promisify} = require('util');
 const archiver = require('archiver');
 const inquirer = require('inquirer');
 const pkg = require('../package.json');
 const dateFormat = require('dateformat');
 const args = require('minimist')(process.argv);
+const {glob, logFile, read, write} = require('./util');
 const {coerce, inc, prerelease, valid} = require('semver');
-
 const exec = promisify(require('child_process').exec);
-const glob = promisify(require('glob'));
 
 inquireVersion(args.v || args.version)
     .then(updateVersion)
     .then(compile)
-    .then(createPackage);
+    .then(createPackage)
+    .catch(({message}) => {
+        console.error(message);
+        process.exitCode = 1;
+    });
 
 async function inquireVersion(v) {
 
@@ -32,7 +33,7 @@ async function inquireVersion(v) {
         validate: val => !!val.length || 'Invalid version'
     });
 
-    return version
+    return version;
 
 }
 
@@ -40,7 +41,7 @@ async function updateVersion(version) {
     await Promise.all([
         run(`npm version ${version} --git-tag-version false`),
         replaceInFile('CHANGELOG.md', data => data.replace(/^##\s*WIP/m, `## ${versionFormat(version)} (${dateFormat(Date.now(), 'mmmm d, yyyy')})`)),
-        replaceInFile('.github/ISSUE_TEMPLATE.md', data => data.replace(pkg.version, version)),
+        replaceInFile('.github/ISSUE_TEMPLATE/bug-report.md', data => data.replace(pkg.version, version)),
     ]);
 
     return version;
@@ -62,7 +63,7 @@ async function createPackage(version) {
         const file = `dist/uikit-${version}.zip`;
 
         archive.pipe(fs.createWriteStream(file).on('close', () => {
-            util.logFile(file);
+            logFile(file);
             resolve();
         }));
         await globToArchive(archive, 'dist/{js,css}/uikit?(-icons|-rtl)?(.min).{js,css}');
@@ -75,7 +76,7 @@ function versionFormat(version) {
 }
 
 async function replaceInFile(file, fn) {
-    await util.write(file, fn(await util.read(file)));
+    await write(file, fn(await read(file)));
 }
 
 async function globToArchive(archive, pattern) {

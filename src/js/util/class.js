@@ -1,6 +1,5 @@
-import {isIE} from './env';
 import {attr} from './attr';
-import {includes, isArray, isString, toNodes} from './lang';
+import {hasOwn, includes, isString, isUndefined, last, toNodes} from './lang';
 
 export function addClass(element, ...args) {
     apply(element, args, 'add');
@@ -31,15 +30,15 @@ export function toggleClass(element, ...args) {
 
     args = getArgs(args);
 
-    const force = !isString(args[args.length - 1]) ? args.pop() : []; // in iOS 9.3 force === undefined evaluates to false
+    const force = !isString(last(args)) ? args.pop() : []; // in iOS 9.3 force === undefined evaluates to false
 
     args = args.filter(Boolean);
 
-    toNodes(element).forEach(element => {
+    toNodes(element).forEach(({classList}) => {
         for (let i = 0; i < args.length; i++) {
-            !isIE
-                ? element.classList.toggle(...[args[i]].concat(force))
-                : classList.toggle(element, args[i], force);
+            supports.Force
+                ? classList.toggle(...[args[i]].concat(force))
+                : (classList[(!isUndefined(force) ? force : !classList.contains(args[i])) ? 'add' : 'remove'](args[i]));
         }
     });
 
@@ -48,10 +47,10 @@ export function toggleClass(element, ...args) {
 function apply(element, args, fn) {
     args = getArgs(args).filter(Boolean);
 
-    args.length && toNodes(element).forEach(element => {
-        !isIE
-            ? element.classList[fn](...args)
-            : classList[fn](element, args);
+    args.length && toNodes(element).forEach(({classList}) => {
+        supports.Multiple
+            ? classList[fn](...args)
+            : args.forEach(cls => classList[fn](cls));
     });
 }
 
@@ -61,28 +60,28 @@ function getArgs(args) {
         , []);
 }
 
-// IE 11 shim (SVG elements do not support `classList` in IE 11)
-const classList = {
+// IE 11
+const supports = {
 
-    add(element, classNames) {
-        classNames.forEach(name => !this.contains(element, name) && attr(element, 'class', `${attr(element, 'class')} ${name}`));
+    get Multiple() {
+        return this.get('_multiple');
     },
 
-    remove(element, classNames) {
-        classNames.forEach(name => attr(element, 'class', (attr(element, 'class') || '').replace(new RegExp(name, 'g'), ' ').trim()));
+    get Force() {
+        return this.get('_force');
     },
 
-    toggle(element, className, force) {
-        this[
-            (!isArray(force)
-                ? force
-                : !this.contains(element, className)
-            ) ? 'add' : 'remove'
-        ](element, [className]);
-    },
+    get(key) {
 
-    contains(element, name) {
-        return (attr(element, 'class') || '').match(new RegExp(name));
+        if (!hasOwn(this, key)) {
+            const {classList} = document.createElement('_');
+            classList.add('a', 'b');
+            classList.toggle('c', false);
+            this._multiple = classList.contains('b');
+            this._force = !classList.contains('c');
+        }
+
+        return this[key];
     }
 
 };

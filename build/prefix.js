@@ -1,4 +1,3 @@
-/* eslint-env node */
 const fs = require('fs');
 const glob = require('glob');
 const util = require('./util');
@@ -25,7 +24,12 @@ if (argv.h || argv.help) {
 
     `);
 } else {
-    readAllFiles().then(startProcess);
+    readAllFiles()
+        .then(startProcess)
+        .catch(({message}) => {
+            console.error(message);
+            process.exitCode = 1;
+        });
 }
 
 function startProcess() {
@@ -42,7 +46,7 @@ function findExistingPrefix() {
 
     allFiles.filter(({file}) => ~file.indexOf('uikit.css')).some(({file, data}) => {
 
-        const res = data.match(new RegExp(`(${util.validClassName.source})-grid`));
+        const res = data.match(new RegExp(`(${util.validClassName.source})(-[a-z]+)?-grid`));
         currentPrefix = res && res[1];
         return currentPrefix;
 

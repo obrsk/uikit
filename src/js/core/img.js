@@ -1,4 +1,4 @@
-import {createEvent, css, Dimensions, escape, getImage, includes, IntersectionObserver, noop, queryAll, startsWith, toFloat, toPx, trigger} from 'uikit-util';
+import {createEvent, css, Dimensions, escape, getImage, includes, IntersectionObserver, isUndefined, queryAll, startsWith, toFloat, toPx, trigger} from 'uikit-util';
 
 export default {
 
@@ -51,7 +51,7 @@ export default {
         target: {
 
             get({target}) {
-                return [this.$el].concat(queryAll(target, this.$el));
+                return [this.$el, ...queryAll(target, this.$el)];
             },
 
             watch() {
@@ -73,13 +73,13 @@ export default {
     connected() {
 
         if (storage[this.cacheKey]) {
-            setSrcAttrs(this.$el, storage[this.cacheKey] || this.dataSrc, this.dataSrcset, this.sizes);
+            setSrcAttrs(this.$el, storage[this.cacheKey], this.dataSrcset, this.sizes);
         } else if (this.isImg && this.width && this.height) {
             setSrcAttrs(this.$el, getPlaceholderImage(this.width, this.height, this.sizes));
         }
 
         this.observer = new IntersectionObserver(this.load, {
-            rootMargin: `${this.offsetTop}px ${this.offsetLeft}px`,
+            rootMargin: `${this.offsetTop}px ${this.offsetLeft}px`
         });
 
         requestAnimationFrame(this.observe);
@@ -128,7 +128,8 @@ export default {
 
         load(entries) {
 
-            if (!entries.some(entry => entry.isIntersecting)) {
+            // Old chromium based browsers (UC Browser) did not implement `isIntersecting`
+            if (!entries.some(entry => isUndefined(entry.isIntersecting) || entry.isIntersecting)) {
                 return;
             }
 
@@ -138,13 +139,13 @@ export default {
                 storage[this.cacheKey] = currentSrc(img);
                 return img;
 
-            }, noop);
+            }, e => trigger(this.$el, new e.constructor(e.type, e)));
 
             this.observer.disconnect();
         },
 
         observe() {
-            if (!this._data.image && this._connected) {
+            if (this._connected && !this._data.image) {
                 this.target.forEach(el => this.observer.observe(el));
             }
         }

@@ -1,12 +1,17 @@
-/* eslint-env node */
 const {inc} = require('semver');
 const {resolve} = require('path');
 const {execSync} = require('child_process');
+const argv = require('minimist')(process.argv.slice(2));
+
+argv._.forEach(arg => {
+    const tokens = arg.split('=');
+    argv[tokens[0]] = tokens[1] || true;
+});
 
 // default exec options
 const options = {cwd: resolve(`${__dirname}/..`), encoding: 'utf8'};
 
-if (isDevCommit()) {
+if (isDevCommit() || argv.f || argv.force) {
 
     // increase version patch number
     const version = inc(require('../package.json').version, 'patch');
@@ -15,10 +20,10 @@ if (isDevCommit()) {
     const hash = execSync('git rev-parse --short HEAD', options).trim();
 
     // set version of package.json
-    execSync(`npm version ${version}-dev.${hash} --git-tag-version false`, options);
+    execSync(`npm version ${version}-dev.${hash} --git-tag-version false`, {...options, stdio: 'inherit'});
 
     // create dist files
-    execSync('npm run compile && npm run compile-rtl && npm run build-scss', options);
+    execSync('yarn compile && yarn compile-rtl && yarn build-scss', {...options, stdio: 'inherit'});
 
     // publish to dev tag
     execSync('npm publish --tag dev', options);

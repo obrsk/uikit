@@ -1,5 +1,5 @@
 import Parallax from '../mixin/parallax';
-import {clamp, css, scrolledOver, query} from 'uikit-util';
+import {clamp, css, query, scrolledOver} from 'uikit-util';
 
 export default {
 
@@ -8,13 +8,13 @@ export default {
     props: {
         target: String,
         viewport: Number,
-        easing: Number,
+        easing: Number
     },
 
     data: {
         target: false,
         viewport: 1,
-        easing: 1,
+        easing: 1
     },
 
     computed: {

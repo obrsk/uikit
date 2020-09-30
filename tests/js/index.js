@@ -48,7 +48,7 @@ docEl.dir = dir;
 const style = styles[storage[key]] || styles.theme;
 
 // add style
-document.writeln(`<link rel="stylesheet" href="${dir !== 'rtl' ? style.css : style.css.replace('.css', '').concat('-rtl.css')}">`);
+document.writeln(`<link rel="stylesheet" href="${dir !== 'rtl' ? style.css : style.css.replace('.css', '-rtl.css')}">`);
 
 // add javascript
 document.writeln('<script src="../dist/js/uikit.js"></script>');
@@ -61,90 +61,7 @@ on(window, 'load', () => setTimeout(() => fastdom.write(() => {
         <div class="uk-container">
             <select class="uk-select uk-form-width-small" style="margin: 20px 20px 20px 0">
                 <option value="index.html">Overview</option>
-                ${[
-                    'accordion',
-                    'alert',
-                    'align',
-                    'animation',
-                    'article',
-                    'background',
-                    'badge',
-                    'base',
-                    'breadcrumb',
-                    'button',
-                    'card',
-                    'close',
-                    'column',
-                    'comment',
-                    'container',
-                    'countdown',
-                    'cover',
-                    'description-list',
-                    'divider',
-                    'dotnav',
-                    'drop',
-                    'dropdown',
-                    'filter',
-                    'flex',
-                    'form',
-                    'grid',
-                    'grid-masonry',
-                    'grid-parallax',
-                    'heading',
-                    'height',
-                    'height-expand',
-                    'height-viewport',
-                    'icon',
-                    'iconnav',
-                    'image',
-                    'label',
-                    'leader',
-                    'lightbox',
-                    'link',
-                    'list',
-                    'margin',
-                    'marker',
-                    'modal',
-                    'nav',
-                    'navbar',
-                    'notification',
-                    'offcanvas',
-                    'overlay',
-                    'padding',
-                    'pagination',
-                    'parallax',
-                    'position',
-                    'placeholder',
-                    'progress',
-                    'scroll',
-                    'scrollspy',
-                    'search',
-                    'section',
-                    'slidenav',
-                    'slider',
-                    'slideshow',
-                    'sortable',
-                    'spinner',
-                    'sticky',
-                    'sticky-navbar',
-                    'subnav',
-                    'svg',
-                    'switcher',
-                    'tab',
-                    'table',
-                    'text',
-                    'thumbnav',
-                    'tile',
-                    'toggle',
-                    'tooltip',
-                    'totop',
-                    'transition',
-                    'utility',
-                    'upload',
-                    'video',
-                    'visibility',
-                    'width'
-                ].sort().map(name => `<option value="${name}.html">${name.split('-').map(ucfirst).join(' ')}</option>`).join('')}
+                ${TESTS.map(name => `<option value="${name}.html">${name.split('-').map(ucfirst).join(' ')}</option>`).join('')}
             </select>
             <select class="uk-select uk-form-width-small" style="margin: 20px">
                 ${Object.keys(styles).map(style => `<option value="${style}">${ucfirst(style)}</option>`).join('')}

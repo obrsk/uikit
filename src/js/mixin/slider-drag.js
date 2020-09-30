@@ -1,4 +1,4 @@
-import {getPos, includes, isRtl, isTouch, noop, off, on, pointerDown, pointerMove, pointerUp, preventClick, trigger} from 'uikit-util';
+import {closest, css, getEventPos, includes, isRtl, isTouch, off, on, pointerCancel, pointerDown, pointerMove, pointerUp, selInput, trigger} from 'uikit-util';
 
 export default {
 
@@ -18,7 +18,7 @@ export default {
             const fn = this[key];
             this[key] = e => {
 
-                const pos = getPos(e).x * (isRtl ? -1 : 1);
+                const pos = getEventPos(e).x * (isRtl ? -1 : 1);
 
                 this.prevPos = pos !== this.pos ? this.pos : this.prevPos;
                 this.pos = pos;
@@ -44,6 +44,7 @@ export default {
 
                 if (!this.draggable
                     || !isTouch(e) && hasTextNodesOnly(e.target)
+                    || closest(e.target, selInput)
                     || e.button > 0
                     || this.length < 2
                 ) {
@@ -51,19 +52,6 @@ export default {
                 }
 
                 this.start(e);
-            }
-
-        },
-
-        {
-
-            // Workaround for iOS 11 bug: https://bugs.webkit.org/show_bug.cgi?id=184250
-
-            name: 'touchmove',
-            passive: false,
-            handler: 'move',
-            delegate() {
-                return this.selSlides;
             }
 
         },
@@ -101,30 +89,22 @@ export default {
             }
 
             // See above workaround notice
-            const off = pointerMove !== 'touchmove'
-                ? on(document, pointerMove, this.move, {passive: false})
-                : noop;
-            this.unbindMove = () => {
-                off();
-                this.unbindMove = null;
-            };
-            on(window, 'scroll', this.unbindMove);
-            on(document, pointerUp, this.end, true);
+            on(document, pointerMove, this.move, {passive: false});
+            on(document, `${pointerUp} ${pointerCancel}`, this.end, true);
+
+            css(this.list, 'userSelect', 'none');
 
         },
 
         move(e) {
-
-            // See above workaround notice
-            if (!this.unbindMove) {
-                return;
-            }
 
             const distance = this.pos - this.drag;
 
             if (distance === 0 || this.prevPos === this.pos || !this.dragging && Math.abs(distance) < this.threshold) {
                 return;
             }
+
+            css(this.list, 'pointerEvents', 'none');
 
             e.cancelable && e.preventDefault();
 
@@ -190,9 +170,8 @@ export default {
 
         end() {
 
-            off(window, 'scroll', this.unbindMove);
-            this.unbindMove && this.unbindMove();
-            off(document, pointerUp, this.end, true);
+            off(document, pointerMove, this.move, {passive: false});
+            off(document, `${pointerUp} ${pointerCancel}`, this.end, true);
 
             if (this.dragging) {
 
@@ -215,9 +194,9 @@ export default {
                     this.show(this.dir > 0 && !dirChange || this.dir < 0 && dirChange ? 'next' : 'previous', true);
                 }
 
-                preventClick();
-
             }
+
+            css(this.list, {userSelect: '', pointerEvents: ''});
 
             this.drag
                 = this.percent

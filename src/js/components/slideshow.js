@@ -10,8 +10,8 @@ export default {
 
     props: {
         ratio: String,
-        minHeight: Boolean,
-        maxHeight: Boolean,
+        minHeight: Number,
+        maxHeight: Number
     },
 
     data: {
@@ -30,7 +30,7 @@ export default {
 
             let [width, height] = this.ratio.split(':').map(Number);
 
-            height = height * this.list.offsetWidth / width;
+            height = height * this.list.offsetWidth / width || 0;
 
             if (this.minHeight) {
                 height = Math.max(this.minHeight, height);
@@ -40,11 +40,11 @@ export default {
                 height = Math.min(this.maxHeight, height);
             }
 
-            return {height: height - boxModelAdjust(this.list, 'content-box')};
+            return {height: height - boxModelAdjust(this.list, 'height', 'content-box')};
         },
 
         write({height}) {
-            css(this.list, 'minHeight', height);
+            height > 0 && css(this.list, 'minHeight', height);
         },
 
         events: ['resize']
